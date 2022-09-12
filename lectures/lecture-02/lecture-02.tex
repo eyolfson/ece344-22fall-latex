@@ -2,7 +2,7 @@
 
 \lecturenumber{2}
 \title{Introduction}
-\version{1.0.0}
+\version{1.0.1}
 \author{Jon Eyolfson}
 \date{September 12, 2022}
 
@@ -250,7 +250,7 @@ exit_group(0)                           = ?
   \begin{frame}
     \frametitle{System Call ABI for Linux AArch64}
 
-    Enter the kernel with a \texttt{syscall} instruction, using registers for
+    Enter the kernel with a \texttt{svc} instruction, using registers for
     arguments:
 
     \begin{itemize}
@@ -272,7 +272,7 @@ exit_group(0)                           = ?
   \end{frame}
 
   \begin{frame}[fragile]
-    \frametitle{Instructions for ``Hello world'', Using the Linux x86-64 ABI}
+    \frametitle{Instructions for ``Hello world'', Using the Linux AArch64 ABI}
 
     Plug in the next 36 bytes into a disassembler, such as:
     \url{https://onlinedisassembler.com/}
