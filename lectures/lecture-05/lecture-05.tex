@@ -2,7 +2,7 @@
 
 \lecturenumber{5}
 \title{Process Management}
-\version{1.3.1}
+\version{1.4.1}
 \author{Jon Eyolfson}
 \date{September 19, 2022}
 
@@ -103,6 +103,56 @@
   \end{frame}
 
   \begin{frame}
+    \frametitle{You Need to Call \texttt{wait} on Child Processes}
+
+    \texttt{wait} as the following API:
+    \begin{itemize}
+      \item \texttt{status}: Address to store the wait status of the process
+      \item Returns the process ID of child process
+
+            \hspace{2em} -1: on failure
+
+            \hspace{2em} 0: for non blocking calls with no child changes
+
+            \hspace{2em} >0: the child with a change
+    \end{itemize}
+
+    \vspace{2em}
+
+    The wait status contains a bunch of information, including the exit code
+
+    \hspace{2em} Use \texttt{man wait} to find all the macros to query wait status
+
+    \hspace{4em} You can use \texttt{waitpid} to wait on a specific child process
+  \end{frame}
+
+  \begin{frame}[fragile]
+    \frametitle{\texttt{wait-example.c} Blocks Until The Child Process Exists, and Cleans Up}
+
+    \begin{lstlisting}
+int main(int argc, char *argv[]) {
+  pid_t pid = fork();
+  if (pid == -1) {
+    return errno;
+  }
+  if (pid == 0) {
+    sleep(2);
+  }
+  else {
+    printf("Calling wait\n");
+    int wstatus;
+    pid_t wait_pid = wait(&wstatus);
+    if (WIFEXITED(wstatus)) {
+      printf("Wait returned for an exited process! pid: %d, status: %d\n",
+             wait_pid, WEXITSTATUS(wstatus));
+    }
+  }
+  return 0;
+}
+    \end{lstlisting}
+  \end{frame}
+
+  \begin{frame}
     \frametitle{A Zombie Process Waits for Its Parent to Read Its Exit Status}
 
     The process is terminated, but it hasn't been acknowledged
@@ -188,56 +238,6 @@ int main(int argc, char *argv[]) {
     ret = print_state(pid);
     if (ret < 0) { return errno; }
   }
-    \end{lstlisting}
-  \end{frame}
-
-  \begin{frame}
-    \frametitle{You Need to Call \texttt{wait} on Child Processes}
-
-    \texttt{wait} as the following API:
-    \begin{itemize}
-      \item \texttt{status}: Address to store the wait status of the process
-      \item Returns the process ID of child process
-
-            \hspace{2em} -1: on failure
-
-            \hspace{2em} 0: for no blocking calls with no child changes
-
-            \hspace{2em} >0: the child with a change
-    \end{itemize}
-
-    \vspace{2em}
-
-    The wait status contains a bunch of information, including the exit code
-
-    \hspace{2em} Use \texttt{man wait} to find all the macros to query wait status
-
-    \hspace{4em} You can use \texttt{waitpid} to wait on a specific child process
-  \end{frame}
-
-  \begin{frame}[fragile]
-    \frametitle{\texttt{wait-example.c} Blocks Until The Child Process Exists, and Cleans Up}
-
-    \begin{lstlisting}
-int main(int argc, char *argv[]) {
-  pid_t pid = fork();
-  if (pid == -1) {
-    return errno;
-  }
-  if (pid == 0) {
-    sleep(2);
-  }
-  else {
-    printf("Calling wait\n");
-    int wstatus;
-    pid_t wait_pid = wait(&wstatus);
-    if (WIFEXITED(wstatus)) {
-      printf("Wait returned for an exited process! pid: %d, status: %d\n",
-             wait_pid, WEXITSTATUS(wstatus));
-    }
-  }
-  return 0;
-}
     \end{lstlisting}
   \end{frame}
 
