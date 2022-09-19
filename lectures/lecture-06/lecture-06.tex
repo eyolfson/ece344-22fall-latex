@@ -1,0 +1,342 @@
+\input{../preamble.tex}
+
+\lecturenumber{6}
+\title{Basic IPC}
+\version{1.0.0}
+\author{Jon Eyolfson}
+\date{September 20/21, 2022}
+
+\begin{document}
+  \begin{frame}[plain, noframenumbering]
+    \titlepage
+  \end{frame}
+
+  \begin{frame}
+    \frametitle{IPC is Transferring Bytes Between Two or More Processes}
+
+    Reading and writing files is a form of IPC
+
+    \vspace{2em}
+
+    The read and write system calls allow any bytes
+  \end{frame}
+
+  \begin{frame}
+    \frametitle{A Simple Process Could Write Everything It Reads}
+
+    See: \texttt{lecture-06/read-write-example.c}
+
+    \vspace{2em}
+
+    We \texttt{read} from standard in, and \texttt{write} to standard out
+
+    \hspace{2em} Does this remind you of any program you've seen before?
+
+    \vspace{2em}
+
+    If we run it in our terminal without arguments, it'll wait for input
+
+    \hspace{2em} Press Ctrl+D when you're done to send end-of-file (EOF)
+  \end{frame}
+
+  \begin{frame}
+    \frametitle{\texttt{read} Just Reads Data from a File Descriptor}
+
+    See: \texttt{man 2 read}
+
+    \vspace{2em}
+
+    There's no EOF character, \texttt{read} just returns 0 bytes read
+
+    \hspace{2em} The kernel returns 0 on a closed file descriptor
+
+    \vspace{2em}
+
+    We need to check for errors!
+
+    \hspace{2em} Save \texttt{errno} if you're using another function that may
+                 set it
+  \end{frame}
+
+  \begin{frame}
+    \frametitle{\texttt{write} Just Writes Data to a File Descriptor}
+
+    See: \texttt{man 2 write}
+
+    \vspace{2em}
+
+    It returns the number of bytes written, you can't assume it's always
+    successful
+
+    \hspace{2em} Save \texttt{errno} if you're using another function that may
+                 set it
+
+    \vspace{2em}
+
+    Both ends of the read and write have a corresponding write and read
+
+    \hspace{2em} This makes two communication channels with command line programs
+  \end{frame}
+
+  \begin{frame}
+    \frametitle{The Standard File Descriptors Are Powerful}
+
+    We could close standard input (freeing file descriptor 0) and open a file
+    instead
+
+    \hspace{2em} Linux uses the lowest available file descriptor for new ones
+
+    \vspace{2em}
+
+    See: \texttt{lecture-06/open-example.c} and \texttt{man 2 open}
+    
+    \vspace{2em}
+
+    Without changing the core code, it now works with multiple input types
+
+    \vspace{2em} You could type, or use a file
+  \end{frame}
+
+  \begin{frame}
+    \frametitle{Your Shell Will Let You Redirect Standard File Descriptors}
+
+    Instead of running \texttt{./open-example open-example.c} we could run:
+
+    \hspace{2em} \texttt{./open-example < open-example.c}
+
+    \vspace{2em}
+
+    Your shell will do the \texttt{open} for you and replace the standard input
+
+    \hspace{2em} We didn't actually have to write that!
+
+    \vspace{2em}
+
+    You could also redirect across multiple processes
+
+    \hspace{2em} \texttt{cat open-example.c | ./open-example} 
+  \end{frame}
+
+  \begin{frame}
+    \frametitle{Signals are a Form of IPC that Interrupts}
+
+    You could also press Ctrl+C to stop \texttt{./open-example}
+
+    \hspace{2em} This interrupts your programs execution and exits early
+
+    \vspace{2em}
+
+    Kernel sends a number to your program indicating the type of signal
+    
+    \hspace{2em} Kernel default handlers either ignore the signal or terminate
+    your process
+
+    \vspace{2em}
+
+    Ctrl+C sends \texttt{SIGINT} (interrupt from keyboard)
+
+    \vspace{2em}
+
+    If the default handler occurs the exit code will be 128 + signal number
+  \end{frame}
+
+  \begin{frame}
+    \frametitle{You Can Set Your Own Signal Handlers with \texttt{sigaction}}
+
+    See: \texttt{lecture-06/signal-example.c} and \texttt{man 2 sigaction}
+
+    \vspace{2em}
+
+    You just declare a function that doesn't return a value, and has an \texttt{int} argument
+
+    \hspace{2em} The integer is the signal number
+
+    \vspace{2em}
+
+    Some numbers are non standard, here a few from Linux x86-64:
+    \begin{itemize}
+      \item 2: \texttt{SIGINT} (interrupt from keyboard)
+      \item 9: \texttt{SIGKILL} (terminate immediately)
+      \item 11: \texttt{SIGSEGV} (memory access violation)
+      \item 15: \texttt{SIGTERM} (terminate)
+    \end{itemize}
+  \end{frame}
+
+  \begin{frame}
+    \frametitle{A Signal Pauses Your Process and Runs the Signal Handler}
+
+    Your process can be interrupted at any point in execution
+
+    \hspace{2em} Your process resumes after the signal handler finishes
+
+    \vspace{2em}
+
+    This is an example of concurrency, your process switches execution
+
+    \hspace{2em} You have to be careful what you write here
+
+    \vspace{2em}
+
+    Run \texttt{./signal-example} and press Ctrl+C
+  \end{frame}
+
+  \begin{frame}
+    \frametitle{You Need to Account for Interrupted System Calls}
+
+    You should see:
+
+    \hspace{2em} \texttt{Ignoring signal 2}
+
+    \hspace{2em} \texttt{read: Interrupted system call}
+
+    \vspace{2em}
+
+    We can rewrite it to retry interrupted system calls
+
+    \hspace{2em} See: \texttt{lecture-06/signal-example-2.c}
+
+    \vspace{2em}
+
+    Now the program continues when we press Ctrl+C
+  \end{frame}
+
+  \begin{frame}
+    \frametitle{You Can Send Signals to Processes with Their PID}
+
+    You can use the command: \texttt{kill}
+
+    \hspace{2em} It is also a system call, taking a \texttt{pid} and signal number
+
+    \vspace{2em}
+
+    Find a processes' ID with \texttt{pidof}, e.g. \texttt{pidof ./signal-example-2}
+
+    \vspace{2em}
+
+    After use \texttt{kill <pid>}, which by default sends \texttt{SIGTERM}
+
+    \vspace{2em}
+
+    Use \texttt{kill -9 <pid>} to tell the kernel to terminate the process
+
+    \hspace{2em} Process won't terminate if it's in uninterruptible sleep
+  \end{frame}
+
+  \begin{frame}
+    \frametitle{Most Operations Are Non-Blocking}
+
+    A non-blocking call returns immediately, and you check if something occurs
+
+    \vspace{2em}
+
+    To turn \texttt{wait} into a non-blocking call, use \texttt{waitpid} with
+    \texttt{WNOHANG} in \texttt{options}
+
+    \vspace{2em}
+
+    To react to changes to a non-blocking call, we can either use a
+    \textit{poll} or \textit{interrupt}
+  \end{frame}
+
+  \begin{frame}
+    \frametitle{Polling Continuously Calls the Function and Checks for Changes}
+
+    See: \texttt{lecture-06/signal-poll-example.c}
+
+    \vspace{2em}
+
+    We call \texttt{waitpid} over and over until the child exits
+
+    \hspace{2em} Note: some hardware behaves like this,
+    
+    \hspace{5em} the kernel may have to check for changes
+
+    \vspace{2em}
+
+    What's the drawback of this approach?
+
+  \end{frame}
+
+  \begin{frame}
+    \frametitle{An Interrupt Instead Occurs Right After the Change}
+
+    See: \texttt{lecture-06/signal-interrupt-example.c}
+
+    \vspace{2em}
+
+    Instead of calling \texttt{wait} or \texttt{waitpid} from \texttt{main},
+    we can do it in the interrupt handler
+
+    \hspace{2em} The kernel sends the \texttt{SIGCHLD} whenever one of its
+                 children exit
+
+    \vspace{2em}
+
+    This idea also applies to the kernel, hardware can generate interrupts
+  \end{frame}
+
+  \begin{frame}
+    \frametitle{Interrupt Handlers Run to Completion}
+
+    See: \texttt{lecture-06/signal-close-example.c}
+
+    \vspace{2em}
+
+    An interrupt may occur while an interrupt handler is already running
+
+    \vspace{2em}
+
+    All interrupt handler code must be reentrant
+
+    \hspace{2em} You need to be able to pause execution,
+    
+    \hspace{2em} execute another call (to the same function),
+    
+    \hspace{2em} and resume execution
+  \end{frame}
+
+  \begin{frame}
+    \frametitle{On a CPU, There's 3 Kinds of ``Interrupts''}
+
+    \textit{Interrupt}
+
+    \hspace{2em} Triggered by external hardware,
+    
+    \hspace{2em} handled by the kernel (needs to respond quickly)
+
+    \vspace{2em}
+
+    \textit{Trap}
+
+    \hspace{2em} Triggered by users (a system call is a trap),
+    
+    \hspace{2em} handled by the kernel (calling process suspended)
+
+    \vspace{2em}
+
+    \textit{Exception}
+
+    \hspace{2em} Triggered by abnormal control flow (divide by zero, illegal memory access),
+
+    \hspace{2em} default handler is the kernel (calling process suspended),
+
+    \hspace{2em} the process can optionally handle these themselves
+  \end{frame}
+
+  \begin{frame}
+    \frametitle{We Explored Basic IPC in an Operating System}
+
+    Some basic IPC includes:
+    \begin{itemize}
+      \item \texttt{read} and \texttt{write} through file descriptors (could be a regular file)
+      \item Redirecting file descriptors for communcation
+      \item Signals
+    \end{itemize}
+
+    \vspace{2em}
+
+    Signals are like interrupts for user processes
+
+    \hspace{2em} The kernel has to handle all 3 kinds of ``interrupts''
+  \end{frame}
+\end{document}
