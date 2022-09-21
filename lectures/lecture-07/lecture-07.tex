@@ -2,7 +2,7 @@
 
 \lecturenumber{7}
 \title{Threads}
-\version{0.1.0}
+\version{1.0.0}
 \author{Jon Eyolfson}
 \date{September 22, 2022}
 
@@ -343,6 +343,20 @@ pthread_attr_destroy(&attributes);
 pthread_attr_setdetachstate(&attributes,
                             PTHREAD_CREATE_JOINABLE);
     \end{lstlisting}
+  \end{frame}
+
+  \begin{frame}
+    \frametitle{Let's Compare Creating Threads to Processes}
+
+    See: \texttt{lecture-07/multiple-thread-example.c}
+
+    \vspace{2em}
+
+    Compare this to: \texttt{lecture-04/multiple-fork-example.c}
+
+    \vspace{2em}
+
+    Technically, how should we (very slightly) improve the thread example?
   \end{frame}
 
   \begin{frame}
