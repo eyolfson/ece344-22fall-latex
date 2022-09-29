@@ -2,7 +2,7 @@
 
 \lecturenumber{10}
 \title{Locks Implementation}
-\version{1.0.0}
+\version{1.0.1}
 \author{Jon Eyolfson}
 \date{September 29, 2022}
 
@@ -94,7 +94,7 @@ void unlock(int *l) {
     \begin{lstlisting}
 void lock(int *l) {
   while (compare_and_swap(l, 0, 1)) {
-    yield();
+    thread_yield();
   }
 }
     \end{lstlisting}
