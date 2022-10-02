@@ -20,25 +20,50 @@
     \vspace{2em}
 
     It does not help you ensure ordering between threads
+
+    \vspace{2em}
+
+    How would we ensure an ordering between two threads?
+  \end{frame}
+
+  \begin{frame}[fragile]
+    \frametitle{Problem: Make One Thread Always Print First}
+
+    \begin{columns}
+      \column{0.4\textwidth}
+        {\bf Thread 1} (\verb+print_first+)
+
+        \verb+printf("This is first\n");+
+      \column{0.4\textwidth}
+        {\bf Thread 2} (\verb+print_second+)
+
+        \verb+printf("I'm going second\n");+
+    \end{columns}
+
+    \vspace{2em}
+
+    Try executing \texttt{./ordered-print} and see what happens
+
+    \vspace{4em}
+
+    Recall: \texttt{printf} is thread safe, which you may need to ensure
+
+    \vspace{1em}
+
+    \hspace{2em} Try executing \texttt{./safe-print} which (oddly) prints using
+                 multiple system calls
+
+    \hspace{2em} Practice: ensure \texttt{./safe-print} behaves the same as
+                 \texttt{./ordered-print}
   \end{frame}
 
   \begin{frame}[fragile]
     \frametitle{Semaphores are Used for Signaling}
 
-    Semaphores have a {\tt value} that's shared between threads/processes
+    Semaphores have a {\tt value} that's shared between threads (optionally
+    processes)
 
-    \vspace{2em}
-
-    \begin{lstlisting}
-#include <semaphore.h>
-
-int sem_init(sem_t *sem, int pshared, unsigned int value)
-    \end{lstlisting}
-
-    \vspace{2em}
-
-    There may up to \texttt{value} number of things with the semaphore
-    simultaneously
+    \hspace{2em} Think of {\tt value} as an integer that is always $\mathsf{\geq 0}$
 
     \vspace{2em}
 
@@ -51,6 +76,12 @@ int sem_init(sem_t *sem, int pshared, unsigned int value)
     \vspace{2em}
 
     If \texttt{wait} will not return until the value is greater than 0
+
+    \vspace{2em}
+
+    You can initially set \texttt{value} to whatever you want
+
+    \hspace{2em} That number of \texttt{wait} calls may occur without any \texttt{post} calls
   \end{frame}
 
   \begin{frame}[fragile]
@@ -61,9 +92,11 @@ int sem_init(sem_t *sem, int pshared, unsigned int value)
 
 int sem_init(sem_t *sem, int pshared, unsigned int value)
 int sem_destroy(sem_t *sem);
-int sem_post(sem_t *sem);
+
 int sem_wait(sem_t *sem);
 int sem_trywait(sem_t *sem);
+
+int sem_post(sem_t *sem);
     \end{lstlisting}
 
     \vspace{2em}
@@ -79,50 +112,52 @@ int sem_trywait(sem_t *sem);
   \end{frame}
 
   \begin{frame}[fragile]
-    \frametitle{How Could We Make This Print ``Thread 1'' then ``Thread 2''?}
+    \frametitle{Problem: Make One Thread Always Print First}
+
+    See \texttt{ordered-print.c} for the full code
+
+    \vspace{1em}
+
+    \hspace{2em} Note: \texttt{return} statements are removed for space
+
+    \vspace{1em}
 
     \begin{lstlisting}
-#include <pthread.h>
-#include <stdio.h>
-#include <semaphore.h>
-#include <stdlib.h>
+void* print_first(void* arg) {
+  printf("This is first\n");
+}
 
-void* p1 (void* arg) { printf("Thread 1\n"); return NULL; }
+void* print_second(void* arg) {
+  printf("I'm going second\n");
+}
 
-void* p2 (void* arg) { printf("Thread 2\n"); return NULL; }
-
-int main(int argc, char *argv[])
-{
-    pthread_t thread[2];
-    pthread_create(&thread[0], NULL, p1, NULL);
-    pthread_create(&thread[1], NULL, p2, NULL);
-    pthread_join(thread[0], NULL);
-    pthread_join(thread[1], NULL);
-    return EXIT_SUCCESS;
+int main(int argc, char *argv[]) {
+  /* Initialize, create, and join threads */
 }
     \end{lstlisting}
   \end{frame}
 
   \begin{frame}[fragile]
-    \frametitle{This Code Prints ``Thread 1'' then ``Thread 2''}
+    \frametitle{This Always Executes \texttt{print\_first}
+                Then \texttt{print\_second}}
 
     \begin{lstlisting}[escapechar=!]
 !\structure{static sem\_t sem;}!
 
-void* p1 (void* arg) {
-  printf("Thread 1\n");
+void* print_first(void* arg) {
+  printf("This is first\n");
   !\structure{sem\_post(\&sem);}!
 }
 
-void* p2 (void* arg) {
+void* print_second(void* arg) {
   !\structure{sem\_wait(\&sem);}!
-  printf("Thread 2\n");
+  printf("I'm going second\n");
 }
 
 int main(int argc, char *argv[])
 {
   !\structure{sem\_init(\&sem, 0, 0);}!
-  /* rest as before */
+  /* Initialize, create, and join threads */
 }
     \end{lstlisting}
   \end{frame}
@@ -134,19 +169,19 @@ int main(int argc, char *argv[])
 
     \vspace{2em}
 
-    Assume ``Thread 2'' executes first
+    Assume \texttt{print\_second} executes first
 
     \hspace{2em} It executes \texttt{sem\_wait}, which is 0, and doesn't
     continue
 
     \vspace{2em}
 
-    ``Thread 1'' doesn't have to wait, it prints first before it increments the
-    \texttt{value}
+    \texttt{print\_first} doesn't have to wait, it prints first before it
+    increments the \texttt{value}
 
     \vspace{2em}
 
-    ``Thread 2'' can then execute its print statement
+    \texttt{print\_second} can then execute its print statement
 
     \vspace{2em}
 
@@ -163,7 +198,6 @@ int main(int argc, char *argv[])
     \frametitle{Using a Semaphore as a Mutex, Note the \texttt{value}}
 
     \begin{lstlisting}[escapechar=!]
-...
 !\structure{static sem\_t sem;}!
 static int counter = 0;
 
@@ -175,11 +209,9 @@ void* run(void* arg) {
     }
 }
 
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
   !\structure{sem\_init(\&sem, 0, 1);}!
-  // Create 8 threads
-  // Join 8 threads
+  /* Initialize, create, and join multiple threads */
   printf("counter = %i\n", counter);
 }
     \end{lstlisting}
@@ -188,7 +220,7 @@ int main(int argc, char *argv[])
   \begin{frame}
     \frametitle{Can We Come Up with a Solution for a Producer/Consumer Problem?}
 
-    Assume you have a circular buffer:
+    Assume you have a circular buffer (each slot is either empty or filled):
 
     \vspace{2em}
 
@@ -219,62 +251,144 @@ int main(int argc, char *argv[])
 
     \vspace{2em}
 
-    The producer should write to the buffer
-
-    \hspace{2em} As long as the buffer is not full
+    The producer should write to the buffer (if the buffer is not full)
 
     \vspace{2em}
 
-    The consumer should read to the buffer
+    The consumer should read from the buffer (if the buffer is not empty)
 
-    \hspace{2em} As long as the buffer is not empty
+    \vspace{2em}
+
+    All consumers share an index and all producers share an index
+
+    \hspace{2em} In both cases the index is initially 0 and increases
+                 sequentially
   \end{frame}
 
   \begin{frame}[fragile]
-    \frametitle{We Would Create Two Semaphores, What \texttt{value}s Should We Use?}
+    \frametitle{Problem 1: Ensure Producers Never Overwrite Filled Slots}
 
     \begin{lstlisting}
-sem_t full;
-sem_t empty;
+static uint32_t buffer_size;
 
-sem_init(&full, 0, /* ??? */);
-sem_init(&empty, 0, /* ??? */);
-
-void producer() {
-  // produce data
-  sem_wait(empty);
-  // fill a slot
-  sem_post(full);
+void init_semaphores() {
+  sem_init(&empty_slots, 0, /* ? */);
 }
-
+void producer() {
+  while (/* ... */) {
+    /* spend time producing data */
+    fill_slot();
+  }
+}
 void consumer() {
-  sem_wait(full);
-  // empty a slot
-  sem_post(empty);
-  // consume data
+  while (/* ... */) {
+    empty_slot();
+    /* spend time consuming data */
+  }
 }
     \end{lstlisting}
   \end{frame}
 
-  \begin{frame}
-    \frametitle{The Previous \texttt{value}s Depend on the Buffer Size}
+  \begin{frame}[fragile]
+    \frametitle{Use a Semaphore to Track the Number of Empty Slots}
 
-    \texttt{full} should always be initialized to 0
+    \begin{lstlisting}[escapechar=!]
+void init_semaphores() {
+  sem_init(&empty_slots, 0, buffer_size);
+}
+void producer() {
+  while (/* ... */) {
+    /* spend time producing data */
+    !\structure{sem\_wait(\&empty\_slots);}!
+    fill_slot();
+  }
+}
+void consumer() {
+  while (/* ... */) {
+    empty_slot();
+    !\structure{sem\_post(\&empty\_slots);}!
+    /* spend time consuming data */
+  }
+}
+    \end{lstlisting}
 
-    \vspace{2em}
+    \begin{tikzpicture}[remember picture,
+                        overlay,
+                        shift={(current page.south west)},
+                        show background rectangle]
+    \node [align=right, anchor=south east, inner sep=2mm,
+           xshift=-2.5em, yshift=2.5em]
+          at (\paperwidth, 0)
+          {What is our next problem?};
+    \end{tikzpicture}
 
-    \texttt{empty} should be initialized to the size of the buffer ---
-    \texttt{N}
+  \end{frame}
 
-    \vspace{2em}
+  \begin{frame}[fragile]
+    \frametitle{Problem 2: Ensure Consumers Never Consume Empty Slots}
 
-    Do we need any extra locking?
+    \begin{lstlisting}
+void init_semaphores() {
+  sem_init(&empty_slots, 0, buffer_size);
+  sem_init(&filled_slots, 0, /* ? */);
+}
+void producer() { while (/* ... */) {
+  /* spend time producing data */
+  sem_wait(&empty_slots);
+  fill_slot();
+} }
+void consumer() { while (/* ... */) {
+  empty_slot();
+  sem_post(&empty_slots);
+  /* spend time consuming data */
+} }
+    \end{lstlisting}
+  \end{frame}
 
-    \onslide<2->{
-      \hspace{2em} No, if there's a single producer and consumer
+  \begin{frame}[fragile]
+    \frametitle{Two Semaphores Ensure Proper Order for Producers and Consumers}
 
-      \hspace{2em} Yes, otherwise
-    }
+    \begin{lstlisting}[escapechar=!]
+void init_semaphores() {
+  sem_init(&empty_slots, 0, buffer_size);
+  sem_init(&filled_slots, 0, 0);
+}
+void producer() { while (/* ... */) {
+  /* spend time producing data */
+  sem_wait(&empty_slots);
+  fill_slot();
+  !\structure{sem\_post(\&filled\_slots);}!
+} }
+void consumer() { while (/* ... */) {
+  !\structure{sem\_wait(\&filled\_slots);}!
+  empty_slot();
+  sem_post(&empty_slots);
+  /* spend time consuming data */
+} }
+    \end{lstlisting}
+  \end{frame}
+
+  \begin{frame}[fragile]
+    \frametitle{What Happens If We Initialize Both Semaphore Values to 0?}
+
+    \begin{lstlisting}
+void init_semaphores() {
+  sem_init(&empty_slots, 0, 0);
+  sem_init(&filled_slots, 0, 0);
+}
+void producer() { while (/* ... */) {
+  /* spend time producing data */
+  sem_wait(&empty_slots);
+  fill_slot();
+  sem_post(&filled_slots);
+} }
+void consumer() { while (/* ... */) {
+  sem_wait(&filled_slots);
+  empty_slot();
+  sem_post(&empty_slots);
+  /* spend time consuming data */
+} }
+    \end{lstlisting}
   \end{frame}
 
   \begin{frame}
@@ -435,15 +549,18 @@ void consumer() {
     For complex conditions condition variables offer much better clarity
   \end{frame}
 
-
   \begin{frame}
-    \frametitle{We Explored More Advanced Locking}
+    \frametitle{We Used Semaphores to Ensure Proper Order}
 
-    Before we did mutual exclusion, now we can ensure order
+    Previously we ensured mutual exclusion, now we can ensure order
 
     \begin{itemize}
-      \item Semaphores are an atomic value that can be used for signaling
+      \item Semaphores contain an initial value you choose
+      \item You can increment the value using post
+      \item You can decrement the value using wait (it blocks if the current
+            value is 0)
       \item Condition variables are clearer for complex condition signaling
+      \item You still need to be prevent data races
     \end{itemize}
   \end{frame}
 \end{document}
