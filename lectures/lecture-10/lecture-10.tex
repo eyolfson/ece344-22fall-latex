@@ -2,7 +2,7 @@
 
 \lecturenumber{10}
 \title{Locks Implementation}
-\version{1.0.1}
+\version{1.1.0}
 \author{Jon Eyolfson}
 \date{September 29, 2022}
 
@@ -235,6 +235,26 @@ void unlock(mutex_t *m) {
         \end{lstlisting}
       \end{column}
     \end{columns}
+  \end{frame}
+
+  \begin{frame}
+    \frametitle{There's STILL A Data Race}
+
+    After a thread calls \texttt{lock}, it could get interrupted right before
+    the \texttt{thread\_sleep}
+
+    \vspace{2em}
+
+    However, it's been added to the wait queue, so \texttt{thread\_wakeup}
+    
+    would try to wake up a thread that's not sleeping yet (we know it's about
+    to)
+
+    \vspace{2em}
+
+    We could simply retry the call to \texttt{thread\_wakeup}
+    
+    until the thread finally calls \texttt{thread\_sleep}
   \end{frame}
 
   \begin{frame}
