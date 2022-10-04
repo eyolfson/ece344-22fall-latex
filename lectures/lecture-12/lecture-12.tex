@@ -2,7 +2,7 @@
 
 \lecturenumber{12}
 \title{Locking}
-\version{1.0.0}
+\version{1.0.1}
 \author{Jon Eyolfson}
 \date{October 4/5, 2021}
 
@@ -88,16 +88,20 @@ int pthread_cond_timedwait(pthread_cond_t *cond, pthread_mutex_t *mutex,
   \begin{frame}
     \frametitle{Condition Variables MUST Be Paired with a Mutex}
 
-    Any calls to \texttt{wait}, \texttt{signal}, and \texttt{broadcast} must
-    already hold the mutex
+    Any calls to \texttt{wait} must already hold the mutex
+
+    \hspace{2em} (\texttt{signal} and \texttt{broadcast} may not)
 
     \vspace{2em}
 
-    Why? \texttt{wait} needs to add itself to the queue safely (without data
-    races)
+    Why? You may think \texttt{wait} needs to add itself to the queue safely (no
+    data races)
 
     \hspace{2em} It needs the mutex as an argument to unlock it before going to
     sleep
+
+    \hspace{4em} The thread will hold the locked \texttt{mutex} before and after
+    the call
 
     \vspace{2em}
 
