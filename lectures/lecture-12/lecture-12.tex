@@ -2,7 +2,7 @@
 
 \lecturenumber{12}
 \title{Locking}
-\version{1.0.1}
+\version{1.1.1}
 \author{Jon Eyolfson}
 \date{October 4/5, 2021}
 
@@ -154,6 +154,49 @@ void consumer() {
         \end{lstlisting}
       \end{column}
     \end{columns}
+  \end{frame}
+
+  \begin{frame}[fragile]
+    \frametitle{What's the Issue with the Following Code?}
+
+    \begin{lstlisting}
+/* Thread 1 */
+pthread_mutex_lock(&mutex);
+while (!condition) {
+  pthread_cond_wait(&cond, &mutex);
+}
+pthread_mutex_unlock(&mutex);
+
+/* Thread 2 */
+condition = true;
+pthread_cond_signal(&cond);
+    \end{lstlisting}
+  \end{frame}
+
+  \begin{frame}[fragile]
+    \frametitle{Can We Change the \texttt{while} to an \texttt{if}?}
+
+    \begin{lstlisting}
+/* Thread 1 */
+pthread_mutex_lock(&mutex);
+if (!condition) {
+  pthread_cond_wait(&cond, &mutex);
+}
+// What could happen here?
+pthread_mutex_unlock(&mutex);
+
+/* Thread 2 */
+pthread_mutex_lock(&mutex);
+condition = true;
+pthread_mutex_unlock(&mutex);
+pthread_cond_signal(&cond);
+
+/* Thread 3 */
+pthread_mutex_lock(&mutex);
+condition = false;
+pthread_mutex_unlock(&mutex);
+pthread_cond_signal(&cond);
+    \end{lstlisting}
   \end{frame}
 
   \begin{frame}
@@ -309,12 +352,11 @@ void f2() {
   \begin{frame}
     \frametitle{We Explored More Advanced Locking}
 
-    Before we did mutual exclusion, now we can ensure order
+    We have another tool to ensure order
 
     \begin{itemize}
-      \item Semaphores are an atomic value that can be used for signaling
       \item Condition variables are clearer for complex condition signaling
-      \item Locking granularity matters, you'll find out in Lab 3
+      \item Locking granularity matters
       \item You must prevent deadlocks
     \end{itemize}
   \end{frame}
