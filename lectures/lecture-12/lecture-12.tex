@@ -2,7 +2,7 @@
 
 \lecturenumber{12}
 \title{Locking}
-\version{1.1.2}
+\version{1.2.0}
 \author{Jon Eyolfson}
 \date{October 4/5, 2021}
 
@@ -110,6 +110,33 @@ int pthread_cond_timedwait(pthread_cond_t *cond, pthread_mutex_t *mutex,
     \vspace{2em}
 
     We'll only consider calls to \texttt{wait} and \texttt{signal}
+  \end{frame}
+
+  \begin{frame}
+    \frametitle{The \texttt{wait} Call Does Not Contain Data Races}
+
+    Understand what \texttt{wait} does (for condition variables!)
+
+    \vspace{2em}
+
+    The thread calling \texttt{wait}:
+    \begin{enumerate}
+      \item Adds itself to the queue for the condition variable
+      \item Unlock the mutex
+      \item Gets blocked (it can no longer be scheduled to run)
+    \end{enumerate}
+
+    \vspace{2em}
+
+    The thread calling \texttt{wait} needs another thread to call \texttt{signal} or
+    \texttt{broadcast},
+    
+    then if it's selected:
+
+    \begin{enumerate}
+      \item Gets unblocked (it can be scheduled to run)
+      \item Tries to lock the mutex again, \texttt{wait} returns when it gets it
+    \end{enumerate}
   \end{frame}
 
   \begin{frame}[fragile]
