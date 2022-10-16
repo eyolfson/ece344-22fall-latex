@@ -1,0 +1,164 @@
+\input{../preamble.tex}
+
+\lecturenumber{16}
+\title{Lab 4 Primer}
+\version{1.0.0}
+\author{Jon Eyolfson}
+\date{October 17, 2022}
+
+\begin{document}
+  \begin{frame}[plain, noframenumbering]
+    \titlepage
+  \end{frame}
+
+  \begin{frame}
+    \frametitle{We Want to Send and Recieve Data From a Process}
+
+    \begin{enumerate}
+      \item Create a new process that launches the command line argument
+      \item Send the string \texttt{Testing\textbackslash n} to that process
+      \item Receive any data it writes to standard output
+    \end{enumerate}
+  \end{frame}
+
+  \begin{frame}
+    \frametitle{Our First New API --- \texttt{pipe}}
+
+    \lstinline!int pipe(pipefd[2]);!
+
+    \vspace{2em}
+
+    Returns \texttt{0} on success, and \texttt{-1} on failure
+    (and sets \texttt{errno})
+
+    \vspace{2em}
+
+    \texttt{pipe} forms a one-way communication channel using two file
+    descriptors
+
+    \hspace{2em} \texttt{pipefd[0]} is the \texttt{read} end of the pipe
+
+    \hspace{2em} \texttt{pipefd[1]} is the \texttt{write} end of the pipe
+
+    \vspace{2em}
+
+    You can think of it as a kernel managed buffer
+    
+    \hspace{2em} Any data written to one end can be read on the other end
+  \end{frame}
+
+  \begin{frame}
+    \frametitle{A More Convenient API -- \texttt{execlp}}
+
+    \lstinline!int execlp(const char *file, const char *arg /*..., (char *)
+                          NULL */);!
+
+    \vspace{2em}
+
+    Does not return on success, and \texttt{-1} on failure
+    (and sets \texttt{errno})
+
+    \vspace{2em}
+
+    \texttt{execlp} will let you skip using string arrays (using C varargs),
+    
+    and it will also search for executables using the \texttt{PATH} environment
+    variable
+  \end{frame}
+
+  \begin{frame}
+    \frametitle{Our Next API --- \texttt{close}}
+
+    \lstinline!int close(int fd);!
+
+    \vspace{2em}
+
+    Returns \texttt{0} on success, and \texttt{-1} on failure
+    (and sets \texttt{errno})
+
+    \vspace{2em}
+
+    Closes the file descriptor for the process, no longer usable
+
+    \vspace{2em}
+
+    This frees up the file desciptor (recall, it's just a number) to be reused
+  \end{frame}
+
+  \begin{frame}
+    \frametitle{Our Final APIs --- \texttt{dup} and \texttt{dup2}}
+
+    \lstinline!int dup(int oldfd);!
+
+    \lstinline!int dup2(int oldfd, int newfd);!
+
+    \vspace{2em}
+
+    Returns a new file descriptor on success, and \texttt{-1} on failure
+    (and sets \texttt{errno})
+
+    \vspace{2em}
+
+    Copies the file descriptor so \texttt{oldfd} and \texttt{newfd} refer to
+    the same thing
+
+    \vspace{2em}
+
+    For \texttt{dup} it'll return the lowest file descriptor
+
+    \vspace{2em}
+
+    For \texttt{dup2} it'll atomically close the \texttt{newfd} argument
+    (if open),
+    
+    and then make \texttt{newfd} refer to the same thing
+  \end{frame}
+
+  \begin{frame}[fragile]
+    \frametitle{Coding Example}
+
+    Done live!
+
+    \vspace{2em}
+
+    You can find the template in \texttt{lecture-16} in the \texttt{examples}
+    repository
+
+    \vspace{2em}
+
+    To compile it, run the following commands:
+
+    \begin{lstlisting}[language=bash, xleftmargin=2em]
+cd lecture-16 # if not already there
+mkdir build
+cd build
+cmake ..
+cmake --build . # or make
+    \end{lstlisting}
+
+    \vspace{2em}
+
+    Run the program using: \lstinline!./subprocess <program>!
+  \end{frame}
+
+  \begin{frame}[fragile]
+    \frametitle{Running with \texttt{cat} May Cause Problems}
+
+    Run the program with the following arguments:
+
+    \vspace{2em}
+
+    \begin{lstlisting}[language=, xleftmargin=2em]
+./subprocess uname
+./subprocess cat
+    \end{lstlisting}
+
+    \vspace{2em}
+
+    You have to be careful with the file descriptors!
+
+    \vspace{2em}
+
+    Why might \texttt{cat} not exit when using pipes?
+  \end{frame}
+\end{document}
