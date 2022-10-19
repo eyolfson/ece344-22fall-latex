@@ -1,0 +1,195 @@
+\input{../preamble.tex}
+
+\lecturenumber{18}
+\title{Quiz 2 Review}
+\version{1.0.0}
+\author{Jon Eyolfson}
+\date{October 20, 2022}
+
+\begin{document}
+  \begin{frame}[plain, noframenumbering]
+    \titlepage
+  \end{frame}
+
+  \begin{frame}[fragile]
+    \frametitle{A Forking Question}
+
+    Consider the following code:
+
+    \begin{lstlisting}
+int main() {
+  pid_t first = fork();
+  pid_t second = fork();
+  pid_t third = fork();
+  printf("first=%d second=%d third=%d\n", first, second, third);
+}
+    \end{lstlisting}
+
+    \vspace{2em}
+
+    What is one reasonable set of outputs (assume the initial process is pid 2)?
+
+    \vspace{1em}
+
+    What order are the outputs in?
+
+    \vspace{1em}
+
+    What do the relationships between processes look like?
+  \end{frame}
+
+  \begin{frame}[fragile]
+    \frametitle{A Threading Question}
+
+    Assume you have a global variable, \lstinline!int i;! and 3 threads.
+
+    \vspace{1em}
+
+    Before any thread executes, \lstinline!i! is initialized to \lstinline!0!
+
+    \vspace{1em}
+
+    Two threads execute \lstinline!i++! and one executes \lstinline!i--!
+
+    \vspace{2em}
+
+    What are all the possible values of \lstinline!i! after all threads execute?
+  \end{frame}
+
+  \begin{frame}
+    \frametitle{Unix Systems Clone Processes with a Parent/Child Relationship}
+
+    \begin{itemize}
+      \item You can only create new processes with \texttt{fork}
+      \item After a \texttt{fork} both processes are exactly the same
+      \begin{itemize}
+        \item except for the value of \texttt{pid} (the child is always 0)
+      \end{itemize}
+      \item The scheduler decides when to run either process
+    \end{itemize}
+  \end{frame}
+
+  \begin{frame}
+    \frametitle{You're Responsible for Managing Processes}
+
+    The operating system maintains a strict parent/child relationship
+    
+    \vspace{2em}
+    
+    You should be able to identify (and prevent) the following:
+    \begin{itemize}
+      \item Zombie processes
+      \item Orphan processes
+    \end{itemize}
+
+    \vspace{2em}
+
+    \textit{For quiz 2: the focus would be more on \texttt{wait}}
+  \end{frame}
+  
+  \begin{frame}
+    \frametitle{We Explored Basic IPC in an Operating System}
+
+    Some basic IPC includes:
+    \begin{itemize}
+      \item \texttt{read} and \texttt{write} through file descriptors (could be a regular file)
+      \item Redirecting file descriptors for communcation
+      \item Signals
+    \end{itemize}
+
+    \vspace{2em}
+
+    Signals are like interrupts for user processes
+
+    \hspace{2em} The kernel has to handle all 3 kinds of ``interrupts''
+
+    \vspace{2em}
+
+    \textit{For quiz 2: this isn't covered}
+  \end{frame}
+
+  \begin{frame}
+    \frametitle{Threads Enable Concurrency}
+
+    We explored threads, and related them to something we already know (processes)
+    \begin{itemize}
+      \item Threads are lighter weight, and share memory by default
+      \item Each process can have multiple threads (but just one at the start)
+    \end{itemize}
+  \end{frame}
+
+  \begin{frame}
+    \frametitle{Both Processes and (Kernel) Threads Enable Parallelization}
+
+    \begin{itemize}
+      \item Each process can have multiple (kernel) threads
+      \item Most implementations use one-to-one user-to-kernel thread mapping
+      \item The operating system has to manage what happens during a fork, or signals
+      \item We now have synchronization issues
+    \end{itemize}
+  \end{frame}
+
+  \begin{frame}
+    \frametitle{We Want Critical Sections to Protect Against Data Races}
+
+    We should know what data races are, and how to prevent them:
+    \begin{itemize}
+      \item Mutex or spinlocks are the most straightforward locks
+      \item We need hardware support to implement locks
+      \item We need some kernel support for wake up notifications
+      \item If we know we have a lot of readers, we should use a read-write lock
+    \end{itemize}
+  \end{frame}
+  
+  \begin{frame}
+    \frametitle{We Used Semaphores to Ensure Proper Order}
+
+    Previously we ensured mutual exclusion, now we can ensure order
+
+    \begin{itemize}
+      \item Semaphores contain an initial value you choose
+      \item You can increment the value using post
+      \item You can decrement the value using wait (it blocks if the current
+            value is 0)
+      \item You still need to be prevent data races
+    \end{itemize}
+  \end{frame}
+
+  \begin{frame}
+    \frametitle{We Explored More Advanced Locking}
+
+    We have another tool to ensure order
+
+    \begin{itemize}
+      \item Condition variables are clearer for complex condition signaling
+      \item Locking granularity matters
+      \item You must prevent deadlocks
+    \end{itemize}
+  \end{frame}
+
+  \begin{frame}
+    \frametitle{Final Questions or Concerns?}
+
+    Ashvin and I will be on Discord, we'll announce any issues (hopefully none!)
+    
+    \vspace{2em}
+
+    Format: 2 true/false, 2 multiple choice, 2 short answer (free form)
+
+    \vspace{2em}
+
+    Expect to take around 47 minutes total:
+    
+    \hspace{2em} 1 minute for true/false,
+    
+    \hspace{2em} 10 minutes for each multiple choice,
+
+    \hspace{2em} 10 minutes for the first short answer,
+    
+    \hspace{2em} and 15 minutes for the final short answer.
+
+    \vspace{2em}
+
+    Good luck!
+  \end{frame}
+\end{document}
