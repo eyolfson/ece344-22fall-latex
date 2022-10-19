@@ -1,0 +1,64 @@
+\input{../preamble.tex}
+
+\lecturenumber{17}
+\title{Parallelization Example}
+\version{1.0.2}
+\author{Jon Eyolfson}
+\date{October 18/19, 2022}
+
+\begin{document}
+  \begin{frame}[plain, noframenumbering]
+    \titlepage
+  \end{frame}
+
+  \begin{frame}
+    \frametitle{We're Running a Bank Doing 10,000,000 Transfers}
+
+    We have a simulation that can create varying number of accounts
+
+    \vspace{2em}
+
+    Each account has a unique ID, and a balance (starting with \$1 000)
+
+    \vspace{2em}
+
+    We generate transfers between random accounts for 10\% of their current
+    balance
+
+    \vspace{2em}
+
+    They must call \lstinline!securely_connect_to_bank! before starting the
+    transfer
+  \end{frame}
+
+  \begin{frame}[fragile]
+    \frametitle{Coding Example}
+
+    Done live! We'll have data races and deadlocks
+    
+    \vspace{2em}
+
+    Our goal is to be faster than 11 seconds
+
+    \vspace{2em}
+
+    You can find the template in \texttt{lecture-17} in the \texttt{examples}
+    repository
+
+    \vspace{2em}
+
+    To compile it, run the following commands:
+
+    \begin{lstlisting}[language=bash, xleftmargin=2em]
+cd lecture-17 # if not already there
+mkdir build
+cd build
+cmake ..
+cmake --build . # or make
+    \end{lstlisting}
+
+    \vspace{2em}
+
+    Run the program using: \lstinline!./banksim <num_accounts>!
+  \end{frame}
+\end{document}
