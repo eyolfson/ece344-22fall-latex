@@ -2,7 +2,7 @@
 
 \lecturenumber{20}
 \title{Multi-Level Page Tables}
-\version{1.0.3}
+\version{1.0.4}
 \author{Jon Eyolfson}
 \date{October 27, 2021}
 
@@ -275,26 +275,23 @@
     \end{center}
 
     © MIT \url{https://github.com/mit-pdos/xv6-riscv-book/}
+
+    \vspace{1em}
+
+    The guard page will generate an exception if accessed meaning stack overflow
   \end{frame}
 
   \begin{frame}
-    \frametitle{A Trampoline is A Fixed Virtual Address Set by the Kernel}
+    \frametitle{The Kernel Can Provide Fixed Virtual Addresses}
 
     It allows the process to access kernel data without using
     a system call
 
     \vspace{2em}
 
-    The guard page will generate an exception if accessed meaning stack overflow
+    For instance \texttt{clock\_gettime} does not do a system call
 
-    \vspace{2em}
-
-    A trap is anytime special handler code runs:
-    \begin{itemize}
-      \item System call
-      \item Exception
-      \item Interrupt (e.g timer)
-    \end{itemize}
+    \hspace{2em} It just reads from a virtual address mapped by the kernel
   \end{frame}
 
   \begin{frame}
