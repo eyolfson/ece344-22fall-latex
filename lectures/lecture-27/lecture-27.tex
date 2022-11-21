@@ -1,0 +1,212 @@
+\input{../preamble.tex}
+
+\lecturenumber{27}
+\title{Quiz 3 Review}
+\version{1.0.0}
+\author{Jon Eyolfson}
+\date{November 21, 2022}
+
+\begin{document}
+  \begin{frame}[plain, noframenumbering]
+    \titlepage
+  \end{frame}
+
+  \begin{frame}{The Quiz Covers 4 General Topics}
+
+    \begin{itemize}
+      \item Scheduling
+      \item Page Replacement
+      \item Page Tables and TLB
+      \item Virtual Memory
+    \end{itemize}
+
+    \vspace{2em}
+
+    \textit{No sockets}
+  \end{frame}
+
+  \begin{frame}
+    \frametitle{Scheduling Involves Trade-Offs}
+
+    We looked at few different algorithms:
+    \begin{itemize}
+      \item First Come First Served (FCFS) is the most basic scheduling algorithm
+      \item Shortest Job First (SJF) is a tweak that reduces waiting time
+      \item Shortest Remaining Time First (SRTF) uses SJF ideas with preemptions
+      \item SRTF optimizes lowest waiting time (or turnaround time)
+      \item Round-robin (RR) optimizes fairness and response time
+    \end{itemize}
+  \end{frame}
+  
+  \begin{frame}
+    \frametitle{Scheduling Gets Even More Complex}
+
+    There are more solutions, and more issues:
+    \begin{itemize}
+      \item Introducing priority also introduces priority inversion
+      \begin{itemize}
+        \item We say dynamic priority scheduling
+      \end{itemize}
+      \item Some processes need good interactivity, others not so much
+      \item Multiprocessors may require per-CPU queues
+      \item Real-time requires predictability
+      \item Completely Fair Scheduler (CFS) tries to model the ideal fairness
+    \end{itemize}
+  \end{frame}
+
+  \begin{frame}
+    \frametitle{Page Tables Translate Virtual to Physical Addresses}
+
+    The MMU is the hardware that uses page tables, which may:
+    \begin{itemize}
+      \item Be a single large table (wasteful, even for 32-bit machines)
+      \item Be a multi-level to save space for sparse allocations
+      \item Use the kernel allocate pages from a free list
+      \item Use a TLB to speed up memory accesses
+    \end{itemize}
+  \end{frame}
+
+  \begin{frame}
+    \frametitle{Page Replacement Algorithms Aim to Reduce Page Faults}
+
+    We saw the following:
+    \begin{itemize}
+      \item Optimal (good for comparison but not realistic)
+      \item Random (actually works surprisingly well, avoids the worst case)
+      \item FIFO (easy to implement but Bélády's anomaly)
+      \item LRU (gets close to optimal but expensive to implement)
+    \end{itemize}
+
+    \vspace{2em}
+
+    The pages go to a swap file on disk
+  \end{frame}
+  
+  \begin{frame}{A Bitmap Is What a Slab Allocator Uses}
+
+    It's a contiguous block of memory that tracks slots (1 bit each)
+
+    \vspace{2em}
+
+    Assume we have a bitmap that's 512 bytes large
+
+    \hspace{2em} That's 4096 bits
+
+    \vspace{2em}
+
+    The bitmap could track 4096 slots (e.g. bit 500 tracks slot 500)
+  \end{frame}
+
+  \begin{frame}{The Coremap Data Structure Manages the Physical Pages (Frames)}
+
+    It keeps track of what processes can access which frames
+
+    \hspace{2em} Recall: two processes could map different virtual pages to the
+                 same frame
+
+    \vspace{2em}
+
+    For each frame it would track what processes (pid) have access to it
+
+    \vspace{2em}
+
+    It would be able to free the frame if no processes have it mapped
+  \end{frame}
+
+  \begin{frame}{Rough Memory Heirarchy Latencies}
+
+    CPU cache: order of nanoseconds ($\mathsf{1\ ns}$)
+
+    \vspace{2em}
+
+    Memory: 100s of nanoseconds, or single digit microseconds
+            ($\mathsf{1\ \mu s}$)
+
+    \vspace{2em}
+
+    SSD: double digit microseconds ($\mathsf{10\ \mu s}$)
+
+    \vspace{2em}
+
+    Disk (Hard Drive): possibly up to milliseconds ($\mathsf{1\ ms}$)
+  \end{frame}
+
+  \begin{frame}{Spatial vs Temporal Locality}
+
+    Spatial locality means accesses are close to each other in memory
+
+    (accessed contiguously or almost)
+
+    \vspace{2em}
+
+    Temporal locality means accesses are close to each other in a small time
+    duration (accessed together or almost)
+  \end{frame}
+  
+  \begin{frame}{Thrashing Is When There is a High Number of Page Faults}
+
+    This occurs when processes cannot have their working sets of memory loaded
+
+    \hspace{2em} A working set is an amount of memory a process requires in a
+                 time interval
+
+    \vspace{2em}
+
+    Processes constantly have to evict pages they are currently using
+
+    \vspace{2em}
+
+    This causes the system to be very slow and almost unresponsive
+
+    \vspace{2em}
+
+    If the page fault frequency (PFF) is too high, the process
+    
+    doesn't have enough memory for its working set
+  \end{frame}
+  
+  \begin{frame}{Demand Paging}
+
+    Mark a page in the page table as invalid
+
+    \hspace{2em} This generates a page fault on the first access
+
+    \vspace{2em}
+
+    The kernel can then allocate a page and update the page table with a valid
+    entry
+
+    \vspace{2em}
+
+    Page fault may happen because a process accesses an unmapped
+    virtual address
+
+    \hspace{2em} Instead send a segfault to the process
+
+    \vspace{2em}
+
+    Note, the alternative is to load everything into memory when the program
+    starts
+  \end{frame}
+
+  \begin{frame}{Copy-on-Write (COW) is a Useful Technique}
+
+    Similar to data races, we can share data as long as there's only reads
+
+    \vspace{2em}
+
+    If two processes are sharing the same frame, and either could write (e.g.
+    right after a fork)
+
+    \hspace{2em} Only copy the frame after one process modifies its page
+
+    \vspace{2em}
+
+    We can also do other optimizations with read-only frames
+    
+    (e.g. one representing the executable code)
+
+    \hspace{2em} Instead of evicting page to disk, just re-read again when you
+                 need it
+  \end{frame}
+\end{document}
