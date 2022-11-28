@@ -1,0 +1,326 @@
+\input{../preamble.tex}
+
+\lecturenumber{31}
+\title{inodes}
+\version{1.0.0}
+\author{Jon Eyolfson}
+\date{December 1, 2022}
+
+\begin{document}
+  \begin{frame}[plain, noframenumbering]
+    \titlepage
+  \end{frame}
+
+  \begin{frame}{An inode Describes a File System Object (Files and Directories)}
+    \includegraphics[height=0.8\textheight]{hinode.png}
+  \end{frame}
+
+  \begin{frame}{Linux inodes Aim to Be Efficient for Small Files, and Support
+                Large Ones}
+    UNIX inodes hold metadata and pointers to blocks
+
+    \vspace{2em}
+
+    Smaller files only use direct pointers
+
+    \vspace{2em}
+
+    Larger files have additional index nodes with pointers to additional blocks
+
+    \vspace{2em}
+
+    Very small files can have it's contents directly inside the inode
+  \end{frame}
+
+  \begin{frame}{inode Problem}
+    
+    Assume this scenario:
+    \begin{itemize}
+      \item An index block stores 12 direct pointers, 1 single, double and
+            triple indirect pointer each
+      \item A disk block is 8~KiB in size
+      \item A pointer to a block is 4~Bytes
+      \item Indirect blocks consist of direct pointers only
+    \end{itemize}
+
+    \vspace{2em}
+
+    What is the maximum size of a file managed by this index block?
+  \end{frame}
+
+  \begin{frame}{inode Solution}
+    
+    Assume this scenario:
+    \begin{itemize}
+      \item An index block stores 12 direct pointers, 1 single, double and triple indirect pointer each
+      \item A disk block is 8~KiB in size
+      \item A pointer to a block is 4~Bytes
+      \item Indirect blocks consist of direct pointers only
+    \end{itemize}
+
+    \vspace{2em}
+
+    \# pointers per indirect table = $\mathsf{\frac{2^{13}}{2^2} = 2^{11}}$
+
+    \# addressable blocks = $\mathsf{12 + 2^{11} + (2^{11})^2 + (2^{11})^3 \approx (2^{11})^3 = 2^{33}}$
+
+    Total of bytes = $\mathsf{2^{33} * 2^{13} = 2^{46} = 64 TiB}$
+  \end{frame}
+
+  \begin{frame}{Hard Links Are Pointers to inodes}
+
+    \begin{center}
+      \begin{tikzpicture}[node distance=0mm and 0mm]
+
+        \node[rectangle,draw,minimum width=80,minimum height=20] (inode1)   {inode 1};
+        \node[rectangle,draw,minimum width=80,minimum height=20,xshift=-30] (fileA)  [left=of inode1] {todo.txt};
+
+        \draw[->] (fileA.east) -- (inode1.west);
+
+      \end{tikzpicture}
+
+    \end{center}
+
+    A directory entry (aka filename) is called a \textit{hard link}
+
+    \vspace{2em}
+
+    A hard link points to one inode
+  \end{frame}
+
+  \begin{frame}{Multiple Hard Links Can Point to the Same inode}
+
+    \begin{center}
+        
+      \begin{tikzpicture}[node distance=0mm and 0mm]
+
+        \node[rectangle,draw,minimum width=80,minimum height=20] (inode1)   {inode 1};
+        \node[rectangle,draw,minimum width=80,minimum height=20,xshift=-30,yshift=20] (fileA)  [left=of inode1] {todo.txt};
+        \node[rectangle,draw,minimum width=80,minimum height=20,xshift=-30,yshift=-20] (fileB)  [left=of inode1] {b.txt};
+
+        \draw[->] (fileA.east) -- (inode1.west);
+        \draw[->] (fileB.east) -- (inode1.west);
+
+      \end{tikzpicture}
+
+    \end{center}
+
+    Deleting a file only removes a hard link (the file can be hard liked somewhere else)
+
+    \vspace{2em}
+
+    POSIX has the \texttt{unlink} call rather than a delete call
+  \end{frame}
+
+  \begin{frame}{Soft Links Are Paths to Another File}
+
+    \begin{center}
+        
+      \begin{tikzpicture}[node distance=0mm and 0mm]
+
+        \node[rectangle,draw,minimum width=80,minimum height=20] (inode1)   {inode 1};
+        \node[rectangle,draw,minimum width=80,minimum height=20,xshift=-30,yshift=20] (fileA)  [left=of inode1] {todo.txt};
+        \node[rectangle,draw,minimum width=80,minimum height=20,xshift=-30,yshift=-20] (fileB)  [left=of inode1] {b.txt};
+
+        \draw[->] (fileA.east) -- (inode1.west);
+        \draw[->] (fileB.north) -- (fileA.south);
+
+      \end{tikzpicture}
+
+    \end{center}
+
+    When resolving the file, the file system is redirected somewhere else, so:
+    \begin{itemize}
+      \item Soft link targets do not need to exist
+      \item Soft link targets can be deleted without notice of the soft link
+      \item Unresolvable soft links lead to an exception
+    \end{itemize}
+  \end{frame}
+
+  \begin{frame}[fragile]{Filesystem Example Problem}
+    \begin{lstlisting}
+touch todo.txt
+ln todo.txt b.txt
+ln -s todo.txt c.txt
+mv todo.txt d.txt
+rm b.txt
+    \end{lstlisting}
+
+    \vspace{2em}
+
+    How does the FS look like before and after the mv and rm commands?
+  \end{frame}
+
+  \begin{frame}[fragile]{Filesystem Example Solution (1)}
+    \begin{lstlisting}
+touch todo.txt
+ln todo.txt b.txt
+ln -s todo.txt c.txt
+mv todo.txt d.txt
+rm b.txt
+    \end{lstlisting}
+
+    Before mv:
+    \begin{tikzpicture}[node distance=0mm and 0mm]
+
+      \node[rectangle,draw,minimum width=80,minimum height=20] (inode1)   {inode 1};
+      \node[rectangle,draw,minimum width=80,minimum height=20,xshift=-30,yshift=20] (fileA)  [left=of inode1] {todo.txt};
+      \node[rectangle,draw,minimum width=80,minimum height=20,xshift=-30,yshift=-20] (fileB)  [left=of inode1] {b.txt};
+      \node[rectangle,draw,minimum width=80,minimum height=20,xshift=-30] (fileC)  [left=of fileA] {c.txt};
+  
+      \draw[->] (fileA.east) -- (inode1.west);
+      \draw[->] (fileB.east) -- (inode1.west);
+      \draw[->] (fileC.east) -- (fileA.west);
+    
+    \end{tikzpicture}
+
+  \end{frame}
+
+  \begin{frame}[fragile]{Filesystem Example Solution (2)}
+    \begin{lstlisting}
+touch todo.txt
+ln todo.txt b.txt
+ln -s todo.txt c.txt
+mv todo.txt d.txt
+rm b.txt
+    \end{lstlisting}
+
+    After mv:
+    \begin{tikzpicture}[node distance=0mm and 0mm]
+
+      \node[rectangle,draw,minimum width=80,minimum height=20] (inode1)   {inode 1};
+      \node[rectangle,draw,minimum width=80,minimum height=20,xshift=-30,yshift=30,fill=black,text=white] (fileA)  [left=of inode1] {todo.txt};
+      \node[rectangle,draw,minimum width=80,minimum height=20,xshift=-30] (fileB)  [left=of inode1] {b.txt};
+      \node[rectangle,draw,minimum width=80,minimum height=20,xshift=-30,yshift=-30] (fileD)  [left=of inode1] {d.txt};
+      \node[rectangle,draw,minimum width=80,minimum height=20,xshift=-30] (fileC)  [left=of fileA] {c.txt};
+  
+      \draw[->] (fileD.east) -- (inode1.west);
+      \draw[->] (fileB.east) -- (inode1.west);
+      \draw[->] (fileC.east) -- (fileA.west);
+    
+    \end{tikzpicture}
+
+  \end{frame}
+
+  \begin{frame}[fragile]{Filesystem Example Solution (3)}
+    \begin{lstlisting}
+touch todo.txt
+ln todo.txt b.txt
+ln -s todo.txt c.txt
+mv todo.txt d.txt
+rm b.txt
+    \end{lstlisting}
+
+    After rm:\\\,\\
+    \begin{tikzpicture}[node distance=0mm and 0mm]
+
+      \node[rectangle,draw,minimum width=80,minimum height=20] (inode1)   {inode 1};
+      \node[rectangle,draw,minimum width=80,minimum height=20,xshift=-30,yshift=30,fill=black,text=white] (fileA)  [left=of inode1] {todo.txt};
+      \node[rectangle,draw,minimum width=80,minimum height=20,xshift=-30,yshift=-30] (fileD)  [left=of inode1] {d.txt};
+      \node[rectangle,draw,minimum width=80,minimum height=20,xshift=-30] (fileC)  [left=of fileA] {c.txt};
+    
+      \draw[->] (fileD.east) -- (inode1.west);
+      \draw[->] (fileC.east) -- (fileA.west);
+    
+    \end{tikzpicture}
+
+  \end{frame}
+
+  \begin{frame}{In UNIX, Everything is a File}
+    Directories are files of type ``directory''
+
+    \vspace{2em}
+
+    Additional types are ``regular file'', ``block device'' (HDDs, SSDs), ``pipe'', ``socket'' etc.
+
+    \vspace{2em}
+
+    Directory inodes do not store pointers to data blocks but rather filenames and pointers to inodes
+  \end{frame}
+
+  \begin{frame}{What Data is Stored in an inode?}
+     \small
+      \begin{itemize}
+        \item[a] Filename
+        \item[b] Containing Directory name
+        \item[c] File Size 
+        \item[d] File type
+        \item[e] \# of soft links to file
+        \item[f] location of soft links 
+        \item[g] \# of hard links to file  
+        \item[h] location of hard links
+        \item[i] access rights
+        \item[j] timestamps
+        \item[k] file contents
+        \item[l] ordered list of data blocks     
+      \end{itemize}
+  \end{frame}
+
+  \begin{frame}{What Data is Stored in an inode? Solution}
+     \small
+      \begin{itemize}
+        \item[a] Filename \textit{No. Names are stored in directories}
+        \item[b] Containing Directory name \textit{No. File can be in multiple dirs}
+        \item[c] File Size \textit{Yes}
+        \item[d] File type \textit{Yes}
+        \item[e] \# of soft links to file \textit{No (they are unknown)}
+        \item[f] location of soft links \textit{No (they are unknown)}
+        \item[g] \# of hard links to file \textit{Yes (to know when to erase the file, check \texttt{stat})}
+        \item[h] location of hard links \textit{No (they are unknown to the inode)}
+        \item[i] access rights \textit{Yes}
+        \item[j] timestamps \textit{Yes}
+        \item[k] file contents \textit{Sometimes}
+        \item[l] ordered list of data blocks \textit{Yes, by definition} 
+      \end{itemize}
+  \end{frame}
+
+  \begin{frame}{Filesystem Caches Speed Up Writing to Disks}
+
+    Writing data to the disk is slow, we can use a cache to speed it up
+
+    \vspace{2em}
+
+    File blocks are cached in main memory in the \textit{filesystem cache}
+    
+    \hspace{2em} Referenced blocks are likely to be referenced again (temporal locality)
+
+    \hspace{2em}Logically near blocks are likely to be referenced (spatial locality)
+
+    \vspace{2em}
+
+    A kernel thread (or daemon) writes changes periodically to disk
+
+    \vspace{2em}
+    
+    \texttt{flush} and \texttt{sync} system calls trigger a permanent write
+  \end{frame}
+
+  \begin{frame}{Journaling Filesystem}
+    Deleting a file on a Unix file system involves three steps:
+
+    \begin{enumerate}
+      \item Removing its directory entry.
+      \item Releasing the inode to the pool of free inodes.
+      \item Returning all disk blocks to the pool of free disk blocks.
+    \end{enumerate}
+
+    \vspace{2em}
+
+    Crashes could occur between any steps, leading to a storage leak
+
+    \vspace{2em}
+
+    The journal contains operations in progress, so if a crash occurs we can recover
+  \end{frame}
+
+  \begin{frame}{inodes Are a Hybrid Allocaiton Strategy}
+    
+    inodes are offer greater flexibility over: contiguous, linked, FAT, or
+    indexed
+
+    \begin{itemize}
+      \item Everything is a file on UNIX, names in a directory can be hard or
+            soft links
+    \end{itemize}
+  \end{frame}
+\end{document}
